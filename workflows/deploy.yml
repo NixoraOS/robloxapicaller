@@ -1,17 +1,22 @@
-name: Deploy
+name: Deploy to Deno Deploy
 on:
   push:
     branches: [main]
+
 jobs:
   deploy:
+    name: Deploy
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Deploy to Deno Deploy
         uses: denoland/deployctl@v1
         with:
           project: robloxapicaller
-          entrypoint: main.ts   
+          entrypoint: mod.ts   

@@ -1,8 +1,9 @@
-import { serve } from "https://deno.land/std@0.170.0/http/server.ts";
+/// <reference lib="deno.unstable" />
 
 const CATEGORIES = [3, 4, 8, 11, 13, 16, 17, 18, 19, 21, 24, 25, 26, 27, 34];
+let cachedItems: any[] = [];
 
-async function fetchCatalog() {
+async function fetchCatalog(): Promise<any[]> {
   const items: any[] = [];
   const baseUrl = "https://catalog.roblox.com/v2/search/items/details";
 
@@ -34,19 +35,17 @@ async function fetchCatalog() {
   return items;
 }
 
-serve(async (req) => {
-  const url = new URL(req.url);
-  
-  if (url.pathname === "/catalog") {
-    try {
-      const items = await fetchCatalog();
-      return new Response(JSON.stringify(items), {
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (err) {
-      return new Response(JSON.stringify({ error: err.message }), { status: 500 });
-    }
+Deno.cron("fetch-catalog-hourly", "0 * * * *", async () => {
+  try {
+    cachedItems = await fetchCatalog();
+    console.log(`✅ Catalog updated with ${cachedItems.length} items`);
+  } catch (err) {
+    console.error("❌ Failed to update catalog:", err.message);
   }
-  
-  return new Response("Roblox Catalog API");
-});  
+});
+
+Deno.serve(() => {
+  return new Response(JSON.stringify(cachedItems), {
+    headers: { "Content-Type": "application/json" },
+  });
+});   

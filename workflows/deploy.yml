@@ -19,4 +19,4 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: robloxapicaller
-          entrypoint: mod.ts   
+          entrypoint: main.ts   

@@ -15,8 +15,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Deploy to Deno Deploy
+      - name: Deploy
         uses: denoland/deployctl@v1
         with:
           project: robloxapicaller
-          entrypoint: main.ts   
+          entrypoint: main.ts
+          args: --prod   

@@ -12,12 +12,11 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy
         uses: denoland/deployctl@v1
         with:
           project: robloxapicaller
-          entrypoint: main.ts
-          args: --prod   
+          entrypoint: main.ts   

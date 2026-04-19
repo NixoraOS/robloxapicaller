@@ -21,8 +21,13 @@ export default async function handler() {
         safety++;
 
         const url = new URL(base);
+
         url.searchParams.set("category", category.toString());
         url.searchParams.set("limit", "120");
+
+        url.searchParams.set("sortType", "Relevance");
+        url.searchParams.set("keyword", "a");
+
         if (cursor) url.searchParams.set("cursor", cursor);
 
         const res = await fetch(url.toString(), {
@@ -42,8 +47,7 @@ export default async function handler() {
           data?.results ??
           [];
 
-        if (!Array.isArray(newItems)) break;
-        if (newItems.length === 0) break;
+        if (!Array.isArray(newItems) || newItems.length === 0) break;
 
         items.push(...newItems);
         categoryCount += newItems.length;
@@ -51,6 +55,7 @@ export default async function handler() {
         cursor = data?.nextPageCursor ?? data?.nextCursor;
 
         if (!cursor) break;
+
         if (categoryCount > 1000) break;
       }
     }

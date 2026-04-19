@@ -1,62 +1,65 @@
-import { getState, setState, saveState } from "../lib/state.js";
+import { getState, setState, saveState } from "../lib/state";
 
 let running = false;
 
-const LIMIT = 50; 
-const MAX_TOTAL = 5000;
+const KEYWORDS = [
+  "shirt",
+  "pants",
+  "hat",
+  "hair",
+  "face",
+  "bundle",
+  "accessory",
+  "shoes",
+];
 
-async function fetchRefreshData() {
-  let cursor = "";
-  let total: any[] = [];
+async function fetchPage({
+  keyword,
+  cursor = "",
+  limit = 120,
+}: {
+  keyword: string;
+  cursor?: string;
+  limit?: number;
+}) {
+  const url = new URL("https://catalog.roblox.com/v2/search/items/details");
 
-  while (true) {
-    const url = new URL("https://catalog.roblox.com/v2/search/items/details");
+  url.searchParams.set("limit", String(limit));
+  url.searchParams.set("sortType", "Relevance");
+  url.searchParams.set("keyword", keyword);
+  url.searchParams.set("includeNotForSale", "true");
 
-    url.searchParams.set("limit", String(LIMIT));
-    url.searchParams.set("sortType", "Relevance");
-
-    if (cursor) url.searchParams.set("cursor", cursor);
-
-    const res = await fetch(url.toString(), {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        Accept: "application/json",
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Refresh fetch failed: ${res.status}`);
-    }
-
-    const data = await res.json();
-
-    const batch = Array.isArray(data?.data)
-      ? data.data
-      : Object.entries(data?.items ?? {}).map(([id, value]: any) => ({
-          id,
-          data: value,
-          updatedAt: Date.now(),
-        }));
-
-    total.push(...batch);
-
-    cursor = data?.nextPageCursor ?? data?.nextCursor;
-
-    if (!cursor) break;
-    if (total.length >= MAX_TOTAL) break;
+  if (cursor) {
+    url.searchParams.set("cursor", cursor);
   }
 
-  return total;
+  const res = await fetch(url.toString(), {
+    headers: {
+      "User-Agent": "Mozilla/5.0",
+      Accept: "application/json",
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Refresh fetch failed: ${res.status}`);
+  }
+
+  const data = await res.json();
+
+  return {
+    items: data?.data ?? [],
+    nextCursor: data?.nextPageCursor ?? null,
+  };
 }
 
-function refreshMerge(oldItems: any[], newItems: any[]) {
+function merge(oldItems: any[], newItems: any[]) {
   const map = new Map<string, any>();
 
-  for (const item of oldItems ?? []) {
+  for (const item of oldItems) {
     if (item?.id) map.set(item.id, item);
   }
 
-  for (const item of newItems ?? []) {
+  for (const item of newItems) {
     if (!item?.id) continue;
 
     const existing = map.get(item.id);
@@ -82,19 +85,37 @@ export default async function handler(req: any, res: any) {
 
     running = true;
 
-    const fresh = await fetchRefreshData();
-    const old = getState() ?? [];
+    const collected: any[] = [];
 
-    const merged = refreshMerge(old, fresh);
+    for (let k = 0; k < KEYWORDS.length; k++) {
+      let cursor: string | null = null;
+
+      for (let page = 0; page < 10; page++) { 
+        const result = await fetchPage({
+          keyword: KEYWORDS[k],
+          cursor: cursor ?? "",
+        });
+
+        collected.push(...result.items);
+
+        cursor = result.nextCursor;
+
+        if (!cursor) break;
+      }
+    }
+
+    const old = getState();
+
+    const merged = merge(old, collected);
 
     setState(merged);
+
     await saveState(merged);
 
     return res.status(200).json({
       ok: true,
       source: "refresh",
       count: merged.length,
-      fetched: fresh.length,
     });
   } catch (err: any) {
     return res.status(500).json({

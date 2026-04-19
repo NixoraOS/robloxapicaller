@@ -1,25 +1,37 @@
+const DEFAULT_KEYWORDS = [
+  "shirt",
+  "pants",
+  "hat",
+  "hair",
+  "face",
+  "bundle",
+  "accessory",
+  "shoes",
+];
+
 export async function fetchRobloxCatalog(params?: {
   limit?: number;
   cursor?: string;
+  keywordIndex?: number;
   category?: string;
-  keyword?: string;
 }) {
   const {
     limit = 120,
     cursor = "",
+    keywordIndex = 0,
     category = "",
-    keyword = "",
   } = params || {};
+
+  const keyword = DEFAULT_KEYWORDS[keywordIndex % DEFAULT_KEYWORDS.length];
 
   const url = new URL("https://catalog.roblox.com/v2/search/items/details");
 
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("sortType", "Relevance");
-  url.searchParams.set("includeNotForSale", "true");
 
-  if (keyword) {
-    url.searchParams.set("keyword", keyword);
-  }
+  url.searchParams.set("keyword", keyword);
+
+  url.searchParams.set("includeNotForSale", "true");
 
   if (category) {
     url.searchParams.set("category", category);
@@ -44,6 +56,6 @@ export async function fetchRobloxCatalog(params?: {
 
   return {
     items: data?.data ?? [],
-    nextCursor: data?.nextPageCursor ?? data?.nextCursor ?? null,
+    nextCursor: data?.nextPageCursor ?? null,
   };
 }

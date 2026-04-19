@@ -1,5 +1,5 @@
-import { getCache, setCache } from "@/lib/cache";
-import { fetchRobloxCatalog } from "@/lib/catalog";
+import { getCache, setCache } from "@/pages/lib/cache";
+import { fetchRobloxCatalog } from "@/pages/lib/catalog";
 
 let refreshing = false;
 

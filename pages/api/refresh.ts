@@ -1,4 +1,4 @@
-import { fetchRobloxCatalog } from "@/lib/catalog";
+import { fetchRobloxCatalog } from "@/pages/lib/catalog";
 
 export default async function handler(req: any, res: any) {
   try {

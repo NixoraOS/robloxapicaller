@@ -16,18 +16,24 @@ export default async function handler() {
       lastUpdated = Date.now();
     }
 
-    return new Response(JSON.stringify({
-      ok: true,
-      cached: true,
-      count: cache.length,
-      data: cache
-    }), {
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        cached: true,
+        count: cache.length,
+        data: cache,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
 
   } catch (err: any) {
     return new Response(
-      JSON.stringify({ ok: false, error: err.message }),
+      JSON.stringify({
+        ok: false,
+        error: err.message,
+      }),
       { status: 500 }
     );
   }

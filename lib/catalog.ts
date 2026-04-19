@@ -29,23 +29,25 @@ export async function fetchRobloxCatalog() {
 
       if (!res.ok) break;
 
-      let data;
-      try {
-        data = await res.json();
-      } catch {
-        break;
-      }
+      const data = await res.json();
 
-      const newItems = data?.data;
+      const newItems =
+        data?.data ??
+        data?.items ??
+        data?.results ??
+        [];
+
       if (!Array.isArray(newItems)) break;
+
+      if (newItems.length === 0) break;
 
       items.push(...newItems);
       categoryCount += newItems.length;
 
-      cursor = data.nextPageCursor;
+      cursor = data?.nextPageCursor ?? data?.nextCursor;
+
       if (!cursor) break;
 
-      // ✅ per-category limit
       if (categoryCount > 1000) break;
     }
   }

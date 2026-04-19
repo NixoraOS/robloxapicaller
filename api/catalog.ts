@@ -1,9 +1,24 @@
-import { getCachedItems } from "@/lib/catalog";
+import { getCache, refreshCache } from "@/lib/catalog";
 
-export default function handler(req: any, res: any) {
+export default async function handler(req: any, res: any) {
   try {
-    res.status(200).json(getCachedItems());
+    const cache = getCache();
+
+    // lazy refresh
+    if (cache.isStale || cache.data.length === 0) {
+      refreshCache().catch((err) =>
+        console.error("Background refresh failed:", err)
+      );
+    }
+
+    return res.status(200).json({
+      lastUpdated: cache.lastUpdated,
+      stale: cache.isStale,
+      data: cache.data,
+    });
   } catch (err: any) {
-    res.status(500).json({ error: err.message });
+    return res.status(500).json({
+      error: err.message,
+    });
   }
 }

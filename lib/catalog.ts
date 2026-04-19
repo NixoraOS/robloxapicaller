@@ -1,13 +1,16 @@
 const CATEGORIES = [3, 4, 8, 11, 13, 16, 17, 18, 19, 21, 24, 25, 26, 27, 34];
 
 let cachedItems: any[] = [];
+let lastUpdated = 0;
 
-export function getCachedItems() {
-  return cachedItems;
-}
+const ONE_HOUR = 60 * 60 * 1000;
 
-export function setCachedItems(items: any[]) {
-  cachedItems = items;
+export function getCache() {
+  return {
+    data: cachedItems,
+    lastUpdated,
+    isStale: Date.now() - lastUpdated > ONE_HOUR,
+  };
 }
 
 export async function fetchCatalog(): Promise<any[]> {
@@ -26,13 +29,12 @@ export async function fetchCatalog(): Promise<any[]> {
       });
 
       const res = await fetch(`${baseUrl}?${params}`);
-
       if (!res.ok) break;
 
       const data = await res.json();
       const newItems = data.data || [];
 
-      if (newItems.length === 0) break;
+      if (!newItems.length) break;
 
       items.push(...newItems);
 
@@ -42,4 +44,15 @@ export async function fetchCatalog(): Promise<any[]> {
   }
 
   return items;
+}
+
+export async function refreshCache() {
+  console.log("Refreshing catalog...");
+
+  const items = await fetchCatalog();
+
+  cachedItems = items;
+  lastUpdated = Date.now();
+
+  console.log(`Cached ${items.length} items`);
 }

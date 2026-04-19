@@ -13,6 +13,7 @@ export default async function handler(req: any, res: any) {
 
     const result = await fetchRobloxCatalog();
     const fresh = result.items;
+    await fetchRobloxCatalog({ pages: 5 });
 
     const stored = getState() ?? [];
 

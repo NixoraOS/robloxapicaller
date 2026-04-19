@@ -20,7 +20,7 @@ export async function fetchRobloxCatalog(params?: {
     limit = 120,
     keywordIndex = 0,
     category = "",
-    pages = 1, 
+    pages = 5, 
   } = params || {};
 
   const keyword = DEFAULT_KEYWORDS[keywordIndex % DEFAULT_KEYWORDS.length];

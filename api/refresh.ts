@@ -1,4 +1,4 @@
-import { getState, setState, saveState } from "../lib/state.ts";
+import { getState, setState, saveState } from "../lib/state";
 
 let running = false;
 

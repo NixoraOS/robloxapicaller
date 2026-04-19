@@ -1,19 +1,25 @@
-export async function fetchRobloxCatalog({
-  limit = 120,
-  cursor = "",
-  category = "",
-}: {
+export async function fetchRobloxCatalog(params?: {
   limit?: number;
   cursor?: string;
   category?: string;
-} = {}) {
+  keyword?: string;
+}) {
+  const {
+    limit = 120,
+    cursor = "",
+    category = "",
+    keyword = "",
+  } = params || {};
 
   const url = new URL("https://catalog.roblox.com/v2/search/items/details");
 
   url.searchParams.set("limit", String(limit));
   url.searchParams.set("sortType", "Relevance");
-
   url.searchParams.set("includeNotForSale", "true");
+
+  if (keyword) {
+    url.searchParams.set("keyword", keyword);
+  }
 
   if (category) {
     url.searchParams.set("category", category);

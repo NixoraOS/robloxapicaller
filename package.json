@@ -1,0 +1,13 @@
+{
+  "name": "roblox-api-caller",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo \"No build step required\"",
+    "start": "echo \"Use Vercel runtime\""
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}

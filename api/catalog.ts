@@ -12,10 +12,9 @@ export default async function handler(req: any, res: any) {
     }
 
     const result = await fetchRobloxCatalog();
+    const fresh = result.items;
 
-    const items = result.items;
-    const nextCursor = result.nextCursor;
-    const stored = getState();
+    const stored = getState() ?? [];
 
     const merged = merge(fresh, stored);
 
@@ -23,7 +22,9 @@ export default async function handler(req: any, res: any) {
       ok: true,
       count: merged.length,
       data: merged,
+      nextCursor: result.nextCursor,
     });
+
   } catch (err: any) {
     return res.status(500).json({
       ok: false,

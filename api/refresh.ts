@@ -13,6 +13,10 @@ const KEYWORDS = [
   "shoes",
 ];
 
+function sleep(ms: number) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function fetchPage({
   keyword,
   cursor = "",
@@ -90,7 +94,7 @@ export default async function handler(req: any, res: any) {
     for (let k = 0; k < KEYWORDS.length; k++) {
       let cursor: string | null = null;
 
-      for (let page = 0; page < 10; page++) { 
+      for (let page = 0; page < 10; page++) {
         const result = await fetchPage({
           keyword: KEYWORDS[k],
           cursor: cursor ?? "",
@@ -101,6 +105,8 @@ export default async function handler(req: any, res: any) {
         cursor = result.nextCursor;
 
         if (!cursor) break;
+
+        await sleep(300);
       }
     }
 
@@ -117,6 +123,7 @@ export default async function handler(req: any, res: any) {
       source: "refresh",
       count: merged.length,
     });
+
   } catch (err: any) {
     return res.status(500).json({
       ok: false,

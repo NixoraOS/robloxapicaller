@@ -20,26 +20,50 @@ export async function fetchCatalog(): Promise<any[]> {
 
   for (const category of CATEGORIES) {
     let cursor: string | undefined;
+    let safety = 0;
 
-    while (items.length < 10000) {
-      const params = new URLSearchParams({
-        category: category.toString(),
-        limit: "120",
-        ...(cursor ? { cursor } : {}),
-      });
+    while (safety < 20) {
+      safety++;
 
-      const res = await fetch(`${baseUrl}?${params}`);
-      if (!res.ok) break;
+      try {
+        const url = new URL(baseUrl);
+        url.searchParams.set("category", category.toString());
+        url.searchParams.set("limit", "120");
+        if (cursor) url.searchParams.set("cursor", cursor);
 
-      const data = await res.json();
-      const newItems = data.data || [];
+        const res = await fetch(url.toString(), {
+          headers: {
+            "User-Agent": "Mozilla/5.0",
+            Accept: "application/json",
+          },
+        });
 
-      if (!newItems.length) break;
+        if (!res.ok) {
+          console.warn("Roblox API error:", res.status);
+          break;
+        }
 
-      items.push(...newItems);
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          console.warn("Invalid JSON from Roblox API");
+          break;
+        }
 
-      cursor = data.nextPageCursor;
-      if (!cursor) break;
+        const newItems = data?.data;
+        if (!Array.isArray(newItems) || newItems.length === 0) break;
+
+        items.push(...newItems);
+
+        cursor = data.nextPageCursor;
+        if (!cursor) break;
+
+        if (items.length >= 10000) break;
+      } catch (err) {
+        console.error("Fetch error:", err);
+        break;
+      }
     }
   }
 
@@ -47,12 +71,18 @@ export async function fetchCatalog(): Promise<any[]> {
 }
 
 export async function refreshCache() {
-  console.log("Refreshing catalog...");
+  try {
+    console.log("Refreshing catalog...");
 
-  const items = await fetchCatalog();
+    const items = await fetchCatalog();
 
-  cachedItems = items;
-  lastUpdated = Date.now();
+    if (!Array.isArray(items)) return;
 
-  console.log(`Cached ${items.length} items`);
+    cachedItems = items;
+    lastUpdated = Date.now();
+
+    console.log(`Cached ${items.length} items`);
+  } catch (err) {
+    console.error("refreshCache failed:", err);
+  }
 }

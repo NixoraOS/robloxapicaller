@@ -12,13 +12,18 @@ export default async function handler(req: any, res: any) {
     }
 
     return res.status(200).json({
+      ok: true,
       lastUpdated: cache.lastUpdated,
       stale: cache.isStale,
+      count: cache.data.length,
       data: cache.data,
     });
   } catch (err: any) {
+    console.error("API CRASH:", err);
+
     return res.status(500).json({
-      error: err.message,
+      ok: false,
+      error: err?.message || "Unknown error",
     });
   }
 }

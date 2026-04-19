@@ -1,6 +1,6 @@
-import { fetchRobloxCatalog } from "../lib/catalog";
-import { getState, hydrateState } from "../lib/state";
-import { merge } from "../lib/passer";
+import { fetchRobloxCatalog } from "../lib/catalog.ts";
+import { getState, hydrateState } from "../lib/state.ts";
+import { merge } from "../lib/passer.ts";
 
 let ready = false;
 

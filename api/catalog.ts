@@ -1,7 +1,7 @@
 import { fetchRobloxCatalog } from "../lib/catalog";
 
 export const config = {
-  runtime: "edge",
+  runtime: "edge"
 };
 
 let cache: any[] = [];
@@ -21,18 +21,19 @@ export default async function handler() {
         ok: true,
         cached: true,
         count: cache.length,
-        data: cache,
+        data: cache
       }),
       {
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        }
       }
     );
-
   } catch (err: any) {
     return new Response(
       JSON.stringify({
         ok: false,
-        error: err.message,
+        error: err.message
       }),
       { status: 500 }
     );

@@ -23,16 +23,24 @@ export async function fetchRobloxCatalog() {
       url.searchParams.set("sortType", "Relevance");
       url.searchParams.set("keyword", "a");
 
-      if (cursor) url.searchParams.set("cursor", cursor);
+      if (cursor) {
+        url.searchParams.set("cursor", cursor);
+      }
 
       const res = await fetch(url.toString(), {
         headers: {
-          "User-Agent": "Mozilla/5.0",
-          Accept: "application/json",
-        },
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0 Safari/537.36",
+
+          "Accept": "application/json, text/plain, */*",
+          "Referer": "https://www.roblox.com/",
+          "Origin": "https://www.roblox.com"
+        }
       });
 
-      if (!res.ok) break;
+      if (!res.ok) {
+        break;
+      }
 
       const data = await res.json();
 
@@ -42,16 +50,22 @@ export async function fetchRobloxCatalog() {
         data?.results ??
         [];
 
-      if (!Array.isArray(newItems) || newItems.length === 0) break;
+      if (!Array.isArray(newItems) || newItems.length === 0) {
+        break;
+      }
 
       items.push(...newItems);
       categoryCount += newItems.length;
 
       cursor = data?.nextPageCursor ?? data?.nextCursor;
 
-      if (!cursor) break;
+      if (!cursor) {
+        break;
+      }
 
-      if (categoryCount > 1000) break;
+      if (categoryCount > 1000) {
+        break;
+      }
     }
   }
 

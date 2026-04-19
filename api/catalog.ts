@@ -1,30 +1,25 @@
-import { getCache, setCache } from "../lib/cache";
-import { fetchRolimonsCatalog } from "../lib/catalog";
+import { fetchRobloxCatalog } from "../lib/catalog";
+import { getState, hydrateState } from "../lib/state";
+import { merge } from "../lib/passer";
 
-let refreshing = false;
+let ready = false;
 
 export default async function handler(req: any, res: any) {
   try {
-    const cache = getCache();
-
-    // auto-refresh if stale
-    if (cache.isStale && !refreshing) {
-      refreshing = true;
-
-      fetchRolimonsCatalog()
-        .then((data) => setCache(data))
-        .catch((err) => console.error("refresh error:", err))
-        .finally(() => {
-          refreshing = false;
-        });
+    if (!ready) {
+      await hydrateState();
+      ready = true;
     }
+
+    const fresh = await fetchRobloxCatalog();
+    const stored = getState();
+
+    const merged = merge(fresh, stored);
 
     return res.status(200).json({
       ok: true,
-      cached: true,
-      lastUpdated: cache.lastUpdated,
-      count: cache.data.length,
-      data: cache.data,
+      count: merged.length,
+      data: merged,
     });
   } catch (err: any) {
     return res.status(500).json({

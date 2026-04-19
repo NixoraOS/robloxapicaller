@@ -1,22 +1,25 @@
-export async function fetchRolimonsCatalog() {
-  const url = "https://api.rolimons.com/items/v1/itemdetails";
-
-  const res = await fetch(url);
+export async function fetchRobloxCatalog() {
+  const res = await fetch(
+    "https://api.rolimons.com/items/v1/itemdetails",
+    {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        Accept: "application/json",
+      },
+    }
+  );
 
   if (!res.ok) {
-    throw new Error(`Rolimons API failed: ${res.status}`);
+    throw new Error("Catalog fetch failed");
   }
 
   const data = await res.json();
 
-  // Rolimons usually returns an object keyed by itemId
-  // We normalize it into an array
-  const items = Object.entries(data?.items ?? data ?? {}).map(
+  return Object.entries(data?.items ?? {}).map(
     ([id, value]: any) => ({
       id,
-      ...value,
+      data: value,
+      updatedAt: Date.now(),
     })
   );
-
-  return items;
 }

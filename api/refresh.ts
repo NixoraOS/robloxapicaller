@@ -1,43 +1,94 @@
-import { setCache } from "../lib/cache";
+import { getState, setState, saveState } from "../lib/state";
+
+let running = false;
+
+// INDEPENDENT FETCH (NOT lib/catalog)
+async function fetchRefreshData() {
+  const res = await fetch(
+    "https://api.rolimons.com/items/v1/itemdetails",
+    {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        Accept: "application/json",
+      },
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error("Refresh fetch failed");
+  }
+
+  const data = await res.json();
+
+  return Object.entries(data?.items ?? {}).map(
+    ([id, value]: any) => ({
+      id,
+      data: value,
+      updatedAt: Date.now(),
+    })
+  );
+}
+
+// INDEPENDENT MERGE LAYER (refresh-only logic)
+function refreshMerge(oldItems: any[], newItems: any[]) {
+  const map = new Map<string, any>();
+
+  for (const item of oldItems) {
+    if (item?.id) map.set(item.id, item);
+  }
+
+  for (const item of newItems) {
+    if (!item?.id) continue;
+
+    const existing = map.get(item.id);
+
+    map.set(item.id, {
+      ...(existing ?? {}),
+      ...item,
+      updatedAt: item.updatedAt ?? Date.now(),
+    });
+  }
+
+  return Array.from(map.values());
+}
 
 export default async function handler(req: any, res: any) {
   try {
-    // Direct Rolimons fetch (no dependency on /lib/catalog logic)
-    const response = await fetch(
-      "https://api.rolimons.com/items/v1/itemdetails"
-    );
-
-    if (!response.ok) {
-      return res.status(500).json({
+    if (running) {
+      return res.status(429).json({
         ok: false,
-        error: `Rolimons API failed: ${response.status}`,
+        error: "Refresh already running",
       });
     }
 
-    const data = await response.json();
+    running = true;
 
-    // Normalize inline (NO /lib/catalog usage)
-    const items = Object.entries(data?.items ?? data ?? {}).map(
-      ([id, value]: any) => ({
-        id,
-        ...value,
-      })
-    );
+    // STEP 1: independent fetch
+    const fresh = await fetchRefreshData();
 
-    // Only responsibility: update cache
-    setCache(items);
+    // STEP 2: old state ONLY
+    const old = getState();
+
+    // STEP 3: refresh-specific merge logic
+    const merged = refreshMerge(old, fresh);
+
+    // STEP 4: update runtime memory
+    setState(merged);
+
+    // STEP 5: persist
+    await saveState(merged);
 
     return res.status(200).json({
       ok: true,
-      emergency: true,
-      refreshed: true,
-      count: items.length,
-      data: items,
+      source: "refresh",
+      count: merged.length,
     });
   } catch (err: any) {
     return res.status(500).json({
       ok: false,
       error: err.message,
     });
+  } finally {
+    running = false;
   }
 }

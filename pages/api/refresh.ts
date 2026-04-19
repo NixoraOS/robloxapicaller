@@ -1,19 +1,79 @@
-import { fetchRobloxCatalog } from "@/pages/lib/catalog";
+export const config = {
+  runtime: "edge",
+};
 
-export default async function handler(req: any, res: any) {
+export default async function handler() {
   try {
-    const data = await fetchRobloxCatalog();
+    const CATEGORIES = [
+      3, 4, 8, 11, 13, 16, 17, 18, 19, 21,
+      24, 25, 26, 27, 34
+    ];
 
-    return res.status(200).json({
-      ok: true,
-      emergency: true,
-      count: data.length,
-      data,
-    });
+    const items: any[] = [];
+    const base = "https://catalog.roblox.com/v2/search/items/details";
+
+    for (const category of CATEGORIES) {
+      let cursor: string | undefined;
+      let safety = 0;
+      let categoryCount = 0;
+
+      while (safety < 6) {
+        safety++;
+
+        const url = new URL(base);
+        url.searchParams.set("category", category.toString());
+        url.searchParams.set("limit", "120");
+        if (cursor) url.searchParams.set("cursor", cursor);
+
+        const res = await fetch(url.toString(), {
+          headers: {
+            "User-Agent": "Mozilla/5.0",
+            Accept: "application/json",
+          },
+        });
+
+        if (!res.ok) break;
+
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          break;
+        }
+
+        const newItems = data?.data;
+        if (!Array.isArray(newItems)) break;
+
+        items.push(...newItems);
+        categoryCount += newItems.length;
+
+        cursor = data.nextPageCursor;
+        if (!cursor) break;
+
+        // ✅ per-category limit (same logic as catalog)
+        if (categoryCount > 1000) break;
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        emergency: true,
+        count: items.length,
+        data: items,
+      }),
+      {
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+
   } catch (err: any) {
-    return res.status(500).json({
-      ok: false,
-      error: err.message,
-    });
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: err.message,
+      }),
+      { status: 500 }
+    );
   }
 }

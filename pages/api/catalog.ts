@@ -1,38 +1,34 @@
-import { getCache, setCache } from "@/pages/lib/cache";
-import { fetchRobloxCatalog } from "@/pages/lib/catalog";
+import { fetchRobloxCatalog } from "../lib/catalog";
 
-let refreshing = false;
+export const config = {
+  runtime: "edge",
+};
 
-export default async function handler(req: any, res: any) {
+let cache: any[] = [];
+let lastUpdated = 0;
+
+const ONE_HOUR = 60 * 60 * 1000;
+
+export default async function handler() {
   try {
-    const cache = getCache();
-
-    // auto-refresh ONLY for catalog endpoint
-    if (cache.isStale && !refreshing) {
-      refreshing = true;
-
-      fetchRobloxCatalog()
-        .then((data) => {
-          setCache(data);
-        })
-        .catch((err) => console.error(err))
-        .finally(() => {
-          refreshing = false;
-        });
+    if (!cache.length || Date.now() - lastUpdated > ONE_HOUR) {
+      cache = await fetchRobloxCatalog();
+      lastUpdated = Date.now();
     }
 
-    return res.status(200).json({
+    return new Response(JSON.stringify({
       ok: true,
       cached: true,
-      lastUpdated: cache.lastUpdated,
-      count: cache.data.length,
-      data: cache.data,
+      count: cache.length,
+      data: cache
+    }), {
+      headers: { "Content-Type": "application/json" },
     });
+
   } catch (err: any) {
-    return res.status(500).json({
-      ok: false,
-      error: err.message,
-      data: [],
-    });
+    return new Response(
+      JSON.stringify({ ok: false, error: err.message }),
+      { status: 500 }
+    );
   }
 }

@@ -11,7 +11,10 @@ export default async function handler(req: any, res: any) {
       ready = true;
     }
 
-    const fresh = await fetchRobloxCatalog();
+    const result = await fetchRobloxCatalog();
+
+    const items = result.items;
+    const nextCursor = result.nextCursor;
     const stored = getState();
 
     const merged = merge(fresh, stored);

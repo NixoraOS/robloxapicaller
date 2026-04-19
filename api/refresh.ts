@@ -2,42 +2,61 @@ import { getState, setState, saveState } from "../lib/state.js";
 
 let running = false;
 
-// INDEPENDENT FETCH (NOT lib/catalog)
+const LIMIT = 50; 
+const MAX_TOTAL = 5000;
+
 async function fetchRefreshData() {
-  const res = await fetch(
-    "https://api.rolimons.com/items/v1/itemdetails",
-    {
+  let cursor = "";
+  let total: any[] = [];
+
+  while (true) {
+    const url = new URL("https://catalog.roblox.com/v2/search/items/details");
+
+    url.searchParams.set("limit", String(LIMIT));
+    url.searchParams.set("sortType", "Relevance");
+
+    if (cursor) url.searchParams.set("cursor", cursor);
+
+    const res = await fetch(url.toString(), {
       headers: {
         "User-Agent": "Mozilla/5.0",
         Accept: "application/json",
       },
-    }
-  );
+    });
 
-  if (!res.ok) {
-    throw new Error("Refresh fetch failed");
+    if (!res.ok) {
+      throw new Error(`Refresh fetch failed: ${res.status}`);
+    }
+
+    const data = await res.json();
+
+    const batch = Array.isArray(data?.data)
+      ? data.data
+      : Object.entries(data?.items ?? {}).map(([id, value]: any) => ({
+          id,
+          data: value,
+          updatedAt: Date.now(),
+        }));
+
+    total.push(...batch);
+
+    cursor = data?.nextPageCursor ?? data?.nextCursor;
+
+    if (!cursor) break;
+    if (total.length >= MAX_TOTAL) break;
   }
 
-  const data = await res.json();
-
-  return Object.entries(data?.items ?? {}).map(
-    ([id, value]: any) => ({
-      id,
-      data: value,
-      updatedAt: Date.now(),
-    })
-  );
+  return total;
 }
 
-// INDEPENDENT MERGE LAYER (refresh-only logic)
 function refreshMerge(oldItems: any[], newItems: any[]) {
   const map = new Map<string, any>();
 
-  for (const item of oldItems) {
+  for (const item of oldItems ?? []) {
     if (item?.id) map.set(item.id, item);
   }
 
-  for (const item of newItems) {
+  for (const item of newItems ?? []) {
     if (!item?.id) continue;
 
     const existing = map.get(item.id);
@@ -45,7 +64,7 @@ function refreshMerge(oldItems: any[], newItems: any[]) {
     map.set(item.id, {
       ...(existing ?? {}),
       ...item,
-      updatedAt: item.updatedAt ?? Date.now(),
+      updatedAt: Date.now(),
     });
   }
 
@@ -63,25 +82,19 @@ export default async function handler(req: any, res: any) {
 
     running = true;
 
-    // STEP 1: independent fetch
     const fresh = await fetchRefreshData();
+    const old = getState() ?? [];
 
-    // STEP 2: old state ONLY
-    const old = getState();
-
-    // STEP 3: refresh-specific merge logic
     const merged = refreshMerge(old, fresh);
 
-    // STEP 4: update runtime memory
     setState(merged);
-
-    // STEP 5: persist
     await saveState(merged);
 
     return res.status(200).json({
       ok: true,
       source: "refresh",
       count: merged.length,
+      fetched: fresh.length,
     });
   } catch (err: any) {
     return res.status(500).json({

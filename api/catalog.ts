@@ -1,6 +1,6 @@
 import { fetchRobloxCatalog } from "../lib/catalog.js";
 import { getState, hydrateState } from "../lib/state.js";
-import { merge } from "../lib/passer";
+import { merge } from "../lib/passer.js";
 
 let ready = false;
 

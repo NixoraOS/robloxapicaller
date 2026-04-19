@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/catalog?refresh=1",
+      "path": "/api/cron",
       "schedule": "0 * * * *"
     }
   ]
